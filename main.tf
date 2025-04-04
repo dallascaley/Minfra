@@ -1,13 +1,15 @@
 # Terraform provider setup
 provider "aws" {
   region = "us-west-2"
-  alias  = "cherry-blossom"
 }
 
 # Define EC2 instance
 resource "aws_instance" "breakroom_instance" {
-  ami           = "ami-0c55b159cbfafe1f0" # Change this to a valid AMI in your region or use the latest Amazon Linux AMI
+  ami           = "ami-01cf060c3da348f92" # ubuntu-minimal/images/hvm-ssd/ubuntu-focal-20.04-amd64-minimal-20250402 (us-west-2)
   instance_type = "t2.micro"
+
+  # you are here...
+  
   key_name      = "your-ssh-key" # Replace with your actual SSH key name
 
   # Security Group Configuration
