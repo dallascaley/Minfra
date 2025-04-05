@@ -59,36 +59,6 @@ resource "aws_route_table_association" "subnet_association" {
 # End of VPC definition area
 
 
-
-# Define EC2 instance
-resource "aws_instance" "breakroom_instance" {
-  ami           = "ami-01cf060c3da348f92" # ubuntu-minimal/images/hvm-ssd/ubuntu-focal-20.04-amd64-minimal-20250402 (us-west-2)
-  instance_type = "t2.micro"
-  key_name      = "Kubernetes Key"
-
-  # you are here...
-
-  # Security Group Configuration
-  vpc_security_group_ids = [aws_security_group.sg.id]
-
-  # User Data script to install Docker and start your container
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras enable docker
-              yum install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              docker pull dallas.caley/breakroom
-              docker run -d -p 80:80 dallas.caley/breakroom
-              EOF
-
-  # Tags for identification
-  tags = {
-    Name = "Breakroom EC2 Instance"
-  }
-}
-
 # Define Security Group to allow SSH (22) and HTTP (80) traffic
 resource "aws_security_group" "sg" {
   name        = "breakroom-sg"
@@ -114,6 +84,35 @@ resource "aws_security_group" "sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Define EC2 instance
+resource "aws_instance" "breakroom_instance" {
+  ami           = "ami-01cf060c3da348f92" # ubuntu-minimal/images/hvm-ssd/ubuntu-focal-20.04-amd64-minimal-20250402 (us-west-2)
+  instance_type = "t2.micro"
+  key_name      = "Kubernetes Key"
+
+  # Security Group Configuration
+  vpc_security_group_ids = [aws_security_group.sg.id]
+
+  # you are here...
+
+  # User Data script to install Docker and start your container
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install docker.io -y
+              systemctl start docker
+              systemctl enable docker
+              usermod -aG docker ubuntu
+              docker pull dallas.caley/breakroom
+              docker run -d -p 80:80 dallas.caley/breakroom
+              EOF
+
+  # Tags for identification
+  tags = {
+    Name = "Breakroom EC2 Instance"
   }
 }
 
