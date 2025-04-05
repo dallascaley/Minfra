@@ -3,14 +3,70 @@ provider "aws" {
   region = "us-west-2"
 }
 
+
+/* uncomment this to check availability zone
+data "aws_availability_zones" "available" {}
+
+output "available_azs" {
+  value = data.aws_availability_zones.available.names
+}
+*/
+
+
+# Lets Define our VPC.  The following is copied directly from ChatGPT but we will fix it (hopefully)
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "main-vpc"
+  }
+}
+
+resource "aws_subnet" "subnet_a" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "subnet-a"
+  }
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "main-igw"
+  }
+}
+
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route" "internet_route" {
+  route_table_id         = aws_route_table.route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.igw.id
+}
+
+resource "aws_route_table_association" "subnet_association" {
+  subnet_id      = aws_subnet.subnet_a.id
+  route_table_id = aws_route_table.route_table.id
+}
+
+# End of VPC definition area
+
+
+
 # Define EC2 instance
 resource "aws_instance" "breakroom_instance" {
   ami           = "ami-01cf060c3da348f92" # ubuntu-minimal/images/hvm-ssd/ubuntu-focal-20.04-amd64-minimal-20250402 (us-west-2)
   instance_type = "t2.micro"
+  key_name      = "Kubernetes Key"
 
   # you are here...
-  
-  key_name      = "your-ssh-key" # Replace with your actual SSH key name
 
   # Security Group Configuration
   vpc_security_group_ids = [aws_security_group.sg.id]
@@ -75,3 +131,4 @@ terraform {
     }
   }
 }
+

@@ -1,0 +1,26 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars*
+*.backup
+
+# Crash logs
+crash.log
+
+# .terraform directories (contains downloaded provider plugins and modules)
+.terraform/
+
+# Override files (used for local overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# .terraform.lock.hcl (can be useful to track, but optional)
+.terraform.lock.hcl
+
+# Kubernetes stuff
+.kube/config
+
+# stuff
+.ssh*
