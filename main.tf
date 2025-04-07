@@ -3,14 +3,12 @@ provider "aws" {
   region = "us-west-2"
 }
 
-
-/* uncomment this to check availability zone
+# Just checking the availability zones
 data "aws_availability_zones" "available" {}
 
 output "available_azs" {
   value = data.aws_availability_zones.available.names
 }
-*/
 
 
 # Lets Define our VPC.  The following is copied directly from ChatGPT but we will fix it (hopefully)
