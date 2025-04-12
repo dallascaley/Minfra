@@ -104,8 +104,8 @@ resource "aws_instance" "breakroom_instance" {
               systemctl start docker
               systemctl enable docker
               usermod -aG docker ubuntu
-              docker pull dallas.caley/breakroom
-              docker run -d -p 80:80 dallas.caley/breakroom
+              docker pull dallascaley/breakroom
+              docker run -d -p 80:80 dallascaley/breakroom
               EOF
 
   # Tags for identification
