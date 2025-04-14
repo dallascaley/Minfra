@@ -10,6 +10,15 @@ output "available_azs" {
   value = data.aws_availability_zones.available.names
 }
 
+# Allocate an Elastic IP
+
+resource "aws_eip" "static_ip" {
+  domain = "vpc"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
 
 # Lets Define our VPC.  The following is copied directly from ChatGPT but we will fix it (hopefully)
 
@@ -114,9 +123,20 @@ resource "aws_instance" "breakroom_instance" {
   }
 }
 
+# Associate Elatic IP address with EC2 Instance
+resource "aws_eip_association" "eip_assoc" {
+  instance_id   = aws_instance.breakroom_instance.id
+  allocation_id = aws_eip.static_ip.id
+}
+
 # Output the instance's public IP address
 output "instance_public_ip" {
   value = aws_instance.breakroom_instance.public_ip
+}
+
+# Output the static IP address
+output "static_ip" {
+  value = aws_eip.static_ip.public_ip
 }
 
 # Set up workspace and organization (these are optional and for organization purposes)
