@@ -1,36 +1,16 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-
-  backend "remote" {
-    organization = "Cherry-Blossom-Development"
-    workspaces {
-      name = "Development-Workspace"
-    }
-  }
-}
-
+# Terraform provider setup
 provider "aws" {
   region = "us-west-2"
 }
 
-# Data source for latest Amazon Linux 2 AMI
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
+# Just checking the availability zones
+data "aws_availability_zones" "available" {}
 
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
+output "available_azs" {
+  value = data.aws_availability_zones.available.names
 }
 
-# VPC and Networking resources
+# Create VPC, Subnet, Internet Gateway
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -75,16 +55,24 @@ resource "aws_route_table_association" "subnet_association" {
   route_table_id = aws_route_table.route_table.id
 }
 
-# Security Group with restricted SSH, open HTTP/HTTPS
+# Allocate an Elastic IP
+resource "aws_eip" "static_ip" {
+  domain = "vpc"
+}
+
+# End of VPC definition area
+
+
+# Security Group for ports 22 (SSH), 80 (HTTP), 443 (HTTPS)
 resource "aws_security_group" "sg" {
   name        = "breakroom-sg"
-  description = "Allow SSH from my IP, HTTP, and HTTPS"
+  description = "Allow SSH, HTTP, and HTTPS"
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["your.ip.address/32"]  # Replace with your actual IP
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -109,14 +97,9 @@ resource "aws_security_group" "sg" {
   }
 }
 
-# Allocate Elastic IP
-resource "aws_eip" "static_ip" {
-  vpc = true
-}
-
-# EC2 Instance to run Docker containers
+# Define EC2 instance
 resource "aws_instance" "breakroom_instance" {
-  ami           = data.aws_ami.amazon_linux.id
+  ami           = "ami-01cf060c3da348f92"  # Ubuntu 20.04 minimal (us-west-2)
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.subnet_a.id
   key_name      = "Kubernetes Key"
@@ -124,30 +107,42 @@ resource "aws_instance" "breakroom_instance" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.sg.id]
 
+  # Minimal bootstrap script
   user_data = <<-EOF
-    #!/bin/bash
-    # Install Docker
-    amazon-linux-extras install -y docker
-    service docker start
-    usermod -aG docker ec2-user
-    
-    # Install Docker Compose (latest)
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-    
-    # Download docker-compose file from your repo or S3
-    curl -o /home/ec2-user/docker-compose.production.yml https://your-bucket-url-or-github-raw-url/docker-compose.production.yml
-    chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
-    
-    # Pull images and start containers
-    sudo -u ec2-user docker-compose -f /home/ec2-user/docker-compose.production.yml pull
-    sudo -u ec2-user docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
-  EOF
+              #!/bin/bash
+              echo "User data script started..."
+              EOF
 
+  # Upload Docker Compose file
+  provisioner "file" {
+    source      = "docker-compose.production.yml"
+    destination = "/home/ubuntu/docker-compose.production.yml"
+  }
+
+  # Upload Nginx config folder
+  provisioner "file" {
+    source      = "backend/etc/nginx"
+    destination = "/home/ubuntu/nginx"
+  }
+
+  # Remote commands
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update -y",
+      "sudo apt-get install -y docker.io docker-compose",
+      "sudo systemctl start docker",
+      "sudo systemctl enable docker",
+      "sudo usermod -aG docker ubuntu",
+      "cd /home/ubuntu",
+      "docker-compose -f docker-compose.production.yml up -d"
+    ]
+  }
+
+  # SSH connection for provisioners
   connection {
     type        = "ssh"
-    user        = "ec2-user"
-    private_key = file("~/.ssh/kubernetes-key.pem")  # Adjust to your private key path
+    user        = "ubuntu"
+    private_key = file("~/.ssh/kubernetes-key.pem") # Adjust this path
     host        = self.public_ip
   }
 
@@ -156,19 +151,29 @@ resource "aws_instance" "breakroom_instance" {
   }
 }
 
-# Associate Elastic IP with EC2 instance
+# Associate EIP to EC2
 resource "aws_eip_association" "eip_assoc" {
   instance_id   = aws_instance.breakroom_instance.id
   allocation_id = aws_eip.static_ip.id
 }
 
-# Outputs
+# Output public IP
 output "instance_public_ip" {
-  description = "Public IP of EC2 instance"
-  value       = aws_instance.breakroom_instance.public_ip
+  value = aws_instance.breakroom_instance.public_ip
 }
 
 output "static_ip" {
-  description = "Elastic IP assigned"
-  value       = aws_eip.static_ip.public_ip
+  value = aws_eip.static_ip.public_ip
 }
+
+# Optional: Use Terraform Cloud
+terraform {
+  backend "remote" {
+    organization = "Cherry-Blossom-Development"
+
+    workspaces {
+      name = "Development-Workspace"
+    }
+  }
+}
+
