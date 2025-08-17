@@ -84,7 +84,7 @@ resource "aws_security_group" "sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["your.ip.address/32"]  # Replace with your actual IP
+    cidr_blocks = ["96.41.68.133/32"]
   }
 
   ingress {
@@ -130,16 +130,25 @@ resource "aws_instance" "breakroom_instance" {
     amazon-linux-extras install -y docker
     service docker start
     usermod -aG docker ec2-user
-    
-    # Install Docker Compose (latest)
+
+    # Install Docker Compose
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
-    
-    # Download docker-compose file from your repo or S3
-    curl -o /home/ec2-user/docker-compose.production.yml https://your-bucket-url-or-github-raw-url/docker-compose.production.yml
+
+    # Install git
+    yum install -y git
+
+    # Clone the Breakroom repo and copy nginx config
+    cd /home/ec2-user
+    git clone https://github.com/dallascaley/Breakroom.git
+    cp -r Breakroom/backend/etc/nginx ./nginx
+    chown -R ec2-user:ec2-user ./nginx
+
+    # Download docker-compose.production.yml (if needed)
+    curl -o /home/ec2-user/docker-compose.production.yml https://github.com/dallascaley/Breakroom/blob/main/docker-compose.production.yml
     chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
-    
-    # Pull images and start containers
+
+    # Run the app
     sudo -u ec2-user docker-compose -f /home/ec2-user/docker-compose.production.yml pull
     sudo -u ec2-user docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
   EOF
@@ -147,7 +156,7 @@ resource "aws_instance" "breakroom_instance" {
   connection {
     type        = "ssh"
     user        = "ec2-user"
-    private_key = file("~/.ssh/kubernetes-key.pem")  # Adjust to your private key path
+    private_key = file("~/.ssh/KubernetesKey.pem")  # Adjust to your private key path
     host        = self.public_ip
   }
 

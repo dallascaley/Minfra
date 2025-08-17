@@ -65,85 +65,87 @@ Key things to consider/change:
       - In a team or produciton environment you want an immutable infrastructure - spin up new instances with baked in logic
       - also repeatability - every instance should be the same without needing manual or semi-manual steps
       - provisioners do not scale well
-        
+
 3. Managing Docker Compose file and configs
 
-Instead of uploading the docker-compose and nginx configs via Terraform provisioners, consider:
+  Instead of uploading the docker-compose and nginx configs via Terraform provisioners, consider:
 
-Storing them in S3 or a version-controlled repo
-
-Pulling them during instance startup (in user_data)
-
-Or baking them into a custom AMI
+    * Storing them in S3 or a version-controlled repo
+    * Pulling them during instance startup (in user_data)
+    * Or baking them into a custom AMI
 
 4. Security Groups
 
-Your SG is open on SSH (22) to 0.0.0.0/0 — ideally restrict SSH access to your IP range for security.
+  Your SG is open on SSH (22) to 0.0.0.0/0 — ideally restrict SSH access to your IP range for security.
 
 5. Elastic IP
 
-Good to associate a static EIP for stable public IP access.
+  Good to associate a static EIP for stable public IP access.
 
 6. Scalability
 
-This single EC2 + Docker Compose approach is fine for small projects, but for production consider:
+  This single EC2 + Docker Compose approach is fine for small projects, but for production consider:
 
-AWS ECS / EKS or Docker Swarm for container orchestration
+    * AWS ECS / EKS or Docker Swarm for container orchestration
 
-Auto-scaling groups behind a Load Balancer
+    * Auto-scaling groups behind a Load Balancer
 
-Example of improved User Data script to pull images & run docker-compose:
-user_data = <<-EOF
-  #!/bin/bash
-  apt-get update -y
-  apt-get install -y docker.io docker-compose
-  systemctl start docker
-  systemctl enable docker
-  usermod -aG docker ubuntu
+    * Example of improved User Data script to pull images & run docker-compose:
 
-  # Download docker-compose file
-  curl -o /home/ubuntu/docker-compose.production.yml https://your-s3-or-github-url/docker-compose.production.yml
+      user_data = <<-EOF
+        #!/bin/bash
+        apt-get update -y
+        apt-get install -y docker.io docker-compose
+        systemctl start docker
+        systemctl enable docker
+        usermod -aG docker ubuntu
 
-  # Pull latest images
-  docker-compose -f /home/ubuntu/docker-compose.production.yml pull
+        # Download docker-compose file
+        curl -o /home/ubuntu/docker-compose.production.yml https://your-s3-or-github-url/docker-compose.production.yml
 
-  # Launch containers
-  docker-compose -f /home/ubuntu/docker-compose.production.yml up -d
-EOF
+        # Pull latest images
+        docker-compose -f /home/ubuntu/docker-compose.production.yml pull
 
-Additional Terraform data block for Amazon Linux AMI (optional):
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-}
+        # Launch containers
+        docker-compose -f /home/ubuntu/docker-compose.production.yml up -d
+      EOF
+
+    * Additional Terraform data block for Amazon Linux AMI (optional):
+
+      data "aws_ami" "amazon_linux" {
+        most_recent = true
+        owners      = ["amazon"]
+        filter {
+          name   = "name"
+          values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+        }
+      }
 
 
-And then in your aws_instance:
+    * And then in your aws_instance:
 
-ami = data.aws_ami.amazon_linux.id
+      ami = data.aws_ami.amazon_linux.id
 
 Summary
 
-Your current Terraform mostly works but could be simplified and hardened for production.
+  * Your current Terraform mostly works but could be simplified and hardened for production.
 
-Move Docker config management outside Terraform provisioners.
+  * Move Docker config management outside Terraform provisioners.
 
-Use user_data to bootstrap the instance.
+  * Use user_data to bootstrap the instance.
 
-Lock down SSH security group.
+  * Lock down SSH security group.
 
-Push images to Docker Hub and ensure docker-compose pulls them.
+  * Push images to Docker Hub and ensure docker-compose pulls them.
 
-Consider container orchestration for scaling.
+  * Consider container orchestration for scaling.
 
 If you want, I can help you refactor your Terraform + Docker Compose integration with a cleaner, more production-friendly example! Would you like that?
 
 You said:
+
 can you give me an entirely new main.tf which follows all of your recommendations?
+
 ChatGPT said:
 
 Absolutely! Here's a revamped main.tf for you that follows best practices:
