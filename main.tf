@@ -79,6 +79,7 @@ resource "aws_route_table_association" "subnet_association" {
 resource "aws_security_group" "sg" {
   name        = "breakroom-sg"
   description = "Allow SSH from my IP, HTTP, and HTTPS"
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 22
@@ -111,7 +112,7 @@ resource "aws_security_group" "sg" {
 
 # Allocate Elastic IP
 resource "aws_eip" "static_ip" {
-  vpc = true
+  domain = "vpc"
 }
 
 # EC2 Instance to run Docker containers
