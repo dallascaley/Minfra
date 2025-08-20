@@ -111,9 +111,9 @@ resource "aws_security_group" "sg" {
 }
 
 # Allocate Elastic IP
-resource "aws_eip" "static_ip" {
-  domain = "vpc"
-}
+# resource "aws_eip" "static_ip" {
+#  domain = "vpc"
+# }
 
 # EC2 Instance to run Docker containers
 resource "aws_instance" "breakroom_instance" {
@@ -177,7 +177,7 @@ resource "aws_instance" "breakroom_instance" {
 # Associate Elastic IP with EC2 instance
 resource "aws_eip_association" "eip_assoc" {
   instance_id   = aws_instance.breakroom_instance.id
-  allocation_id = aws_eip.static_ip.id
+  allocation_id = eipalloc-0dcd99b6b29791b48
 }
 
 # Outputs
@@ -186,7 +186,13 @@ output "instance_public_ip" {
   value       = aws_instance.breakroom_instance.public_ip
 }
 
-output "static_ip" {
-  description = "Elastic IP assigned"
-  value       = aws_eip.static_ip.public_ip
+# output "static_ip" {
+#   description = "Elastic IP assigned"
+#   value       = aws_eip.static_ip.public_ip
+# }
+
+output "static_ip_manual" {
+  description = "Manually assigned Elastic IP"
+  value       = "44.225.148.34"
 }
+
