@@ -126,7 +126,8 @@ resource "aws_instance" "breakroom_instance" {
   vpc_security_group_ids      = [aws_security_group.sg.id]
 
   user_data = <<-EOF
-    #!/bin/bash
+    #!/bin/bash -xe
+
     # Install Docker
     amazon-linux-extras install -y docker
     service docker start
@@ -136,22 +137,29 @@ resource "aws_instance" "breakroom_instance" {
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
 
+    yum update -y
+
     # Install git
     yum install -y git
 
     # Clone the Breakroom repo and copy nginx config
     cd /home/ec2-user
     git clone https://github.com/dallascaley/Breakroom.git
-    cp -r Breakroom/backend/etc/nginx ./nginx
+
+    # Copy nginx and encrypt into proper location
+    mkdir -p /home/ec2-user/backend/etc
+    cp -r Breakroom/backend/etc/nginx /home/ec2-user/backend/etc/nginx
+    cp -r Breakroom/backend/etc/encrypt /home/ec2-user/backend/etc/encrypt
+
     chown -R ec2-user:ec2-user ./nginx
 
     # Download docker-compose.production.yml (if needed)
-    curl -o /home/ec2-user/docker-compose.production.yml https://github.com/dallascaley/Breakroom/blob/main/docker-compose.production.yml
+    curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
     chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
 
     # Run the app
-    sudo -u ec2-user docker-compose -f /home/ec2-user/docker-compose.production.yml pull
-    sudo -u ec2-user docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
+    sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml pull
+    sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
   EOF
 
   connection {

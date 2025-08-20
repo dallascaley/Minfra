@@ -357,48 +357,47 @@ Version 92304342.32 of ChatGPT bullshit instructions...
 
 Your user_data script is solid! It installs Docker, Docker Compose, git, clones your repo, sets up nginx config, and launches your Docker containers. A few quick tips and tweaks to make it smoother:
 
-Use #!/bin/bash -xe to get debug output on startup (helps troubleshoot).
+  Use #!/bin/bash -xe to get debug output on startup (helps troubleshoot).
 
-curl to raw GitHub file URLs instead of the GitHub HTML page for docker-compose.production.yml.
+  curl to raw GitHub file URLs instead of the GitHub HTML page for docker-compose.production.yml.
 
-Add a yum update -y before installs to avoid stale packages.
+  Add a yum update -y before installs to avoid stale packages.
 
-Make sure docker-compose binary directory is in PATH or call it with full path (/usr/local/bin/docker-compose).
+  Make sure docker-compose binary directory is in PATH or call it with full path (/usr/local/bin/docker-compose).
 
-Consider running docker-compose commands as ec2-user with sudo -u ec2-user, you already do that — good.
+  Consider running docker-compose commands as ec2-user with sudo -u ec2-user, you already do that — good.
 
 Here’s your improved user_data snippet with the fixes:
 
-#!/bin/bash -xe
+  #!/bin/bash -xe
 
-yum update -y
+  yum update -y
 
-# Install Docker
-amazon-linux-extras install -y docker
-service docker start
-usermod -aG docker ec2-user
+  # Install Docker
+  amazon-linux-extras install -y docker
+  service docker start
+  usermod -aG docker ec2-user
 
-# Install Docker Compose
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
+  # Install Docker Compose
+  curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  chmod +x /usr/local/bin/docker-compose
 
-# Install git
-yum install -y git
+  # Install git
+  yum install -y git
 
-# Clone the Breakroom repo and copy nginx config
-cd /home/ec2-user
-git clone https://github.com/dallascaley/Breakroom.git
-cp -r Breakroom/backend/etc/nginx ./nginx
-chown -R ec2-user:ec2-user ./nginx
+  # Clone the Breakroom repo and copy nginx config
+  cd /home/ec2-user
+  git clone https://github.com/dallascaley/Breakroom.git
+  cp -r Breakroom/backend/etc/nginx ./nginx
+  chown -R ec2-user:ec2-user ./nginx
 
-# Download docker-compose.production.yml (RAW link)
-curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
-chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
+  # Download docker-compose.production.yml (RAW link)
+  curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
+  chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
 
-# Run the app with docker-compose
-sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml pull
-sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
-
+  # Run the app with docker-compose
+  sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml pull
+  sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
 
 How to update your Terraform code:
 
