@@ -164,6 +164,12 @@ resource "aws_instance" "breakroom_instance" {
   user_data = <<-EOF
     #!/bin/bash -xe
 
+    # Wait for yum lock to clear #1
+    while sudo fuser /var/run/yum.pid >/dev/null 2>&1; do
+        echo "Waiting for yum lock to be released... (1)"
+        sleep 5
+    done
+
     # Install Docker
     amazon-linux-extras install -y docker
     service docker start
@@ -172,6 +178,12 @@ resource "aws_instance" "breakroom_instance" {
     # Install Docker Compose
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
+
+    # Wait for yum lock to clear #2
+    while sudo fuser /var/run/yum.pid >/dev/null 2>&1; do
+        echo "Waiting for yum lock to be released... (2)"
+        sleep 5
+    done
 
     yum update -y
     yum install -y git awscli
