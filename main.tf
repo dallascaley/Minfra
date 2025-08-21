@@ -110,10 +110,44 @@ resource "aws_security_group" "sg" {
   }
 }
 
-# Allocate Elastic IP
-# resource "aws_eip" "static_ip" {
-#  domain = "vpc"
-# }
+resource "aws_iam_role" "ec2_role" {
+  name = "breakroom-ec2-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ec2_s3_read_policy" {
+  name = "breakroom-ec2-s3-read"
+  role = aws_iam_role.ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:GetObject"
+        ],
+        Resource = "arn:aws:s3:::breakroom-secrets/encrypt.tar.gz"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "breakroom-ec2-instance-profile"
+  role = aws_iam_role.ec2_role.name
+}
 
 # EC2 Instance to run Docker containers
 resource "aws_instance" "breakroom_instance" {
@@ -124,6 +158,8 @@ resource "aws_instance" "breakroom_instance" {
 
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.sg.id]
+
+  iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
 
   user_data = <<-EOF
     #!/bin/bash -xe
@@ -138,22 +174,26 @@ resource "aws_instance" "breakroom_instance" {
     chmod +x /usr/local/bin/docker-compose
 
     yum update -y
+    yum install -y git awscli
 
-    # Install git
-    yum install -y git
+    cd /home/ec2-user
+
+    # Download and extract secrets from S3
+    aws s3 cp s3://breakroom-secrets/encrypt.tar.gz /home/ec2-user/encrypt.tar.gz
+    mkdir -p /home/ec2-user/backend/etc/encrypt
+    tar -xzf encrypt.tar.gz -C /home/ec2-user/backend/etc/encrypt --strip-components=1
 
     # Clone the Breakroom repo and copy nginx config
-    cd /home/ec2-user
     git clone https://github.com/dallascaley/Breakroom.git
 
-    # Copy nginx and encrypt into proper location
-    mkdir -p /home/ec2-user/backend/etc
+    mkdir -p /home/ec2-user/backend/etc/nginx
+    curl -L -o /home/ec2-user/backend/etc/nginx/nginx-production.conf https://raw.githubusercontent.com/dallascaley/Breakroom/main/backend/etc/nginx/nginx-production.conf
+
     cp -r Breakroom/backend/etc/nginx /home/ec2-user/backend/etc/nginx
-    cp -r Breakroom/backend/etc/encrypt /home/ec2-user/backend/etc/encrypt
 
-    chown -R ec2-user:ec2-user ./nginx
+    chown -R ec2-user:ec2-user /home/ec2-user/backend
 
-    # Download docker-compose.production.yml (if needed)
+    # Download docker-compose.production.yml
     curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
     chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
 
@@ -177,7 +217,7 @@ resource "aws_instance" "breakroom_instance" {
 # Associate Elastic IP with EC2 instance
 resource "aws_eip_association" "eip_assoc" {
   instance_id   = aws_instance.breakroom_instance.id
-  allocation_id = eipalloc-0dcd99b6b29791b48
+  allocation_id = "eipalloc-0dcd99b6b29791b48"
 }
 
 # Outputs
@@ -185,11 +225,6 @@ output "instance_public_ip" {
   description = "Public IP of EC2 instance"
   value       = aws_instance.breakroom_instance.public_ip
 }
-
-# output "static_ip" {
-#   description = "Elastic IP assigned"
-#   value       = aws_eip.static_ip.public_ip
-# }
 
 output "static_ip_manual" {
   description = "Manually assigned Elastic IP"
