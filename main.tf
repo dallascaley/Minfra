@@ -165,7 +165,7 @@ resource "aws_instance" "breakroom_instance" {
     #!/bin/bash -xe
 
     # Wait for yum lock to clear #1
-    while sudo fuser /var/run/yum.pid >/dev/null 2>&1; do
+    while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
         echo "Waiting for yum lock to be released... (1)"
         sleep 5
     done
@@ -180,7 +180,7 @@ resource "aws_instance" "breakroom_instance" {
     chmod +x /usr/local/bin/docker-compose
 
     # Wait for yum lock to clear #2
-    while sudo fuser /var/run/yum.pid >/dev/null 2>&1; do
+    while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
         echo "Waiting for yum lock to be released... (2)"
         sleep 5
     done
