@@ -163,55 +163,62 @@ resource "aws_instance" "breakroom_instance" {
 
   user_data = <<-EOF
     #!/bin/bash -xe
+    
+    # now just install python3 which is required for Ansible
+    
+    sudo apt update
+    sudo apt install -y python3
+
+    # here is all the crap it used to do:
 
     # Wait for yum lock to clear #1
-    while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
-        echo "Waiting for yum lock to be released... (1)"
-        sleep 5
-    done
+    # while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
+    #    echo "Waiting for yum lock to be released... (1)"
+    #    sleep 5
+    #done
 
     # Install Docker
-    amazon-linux-extras install -y docker
-    service docker start
-    usermod -aG docker ec2-user
+    # amazon-linux-extras install -y docker
+    # service docker start
+    # usermod -aG docker ec2-user
 
     # Install Docker Compose
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
+    # curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    # chmod +x /usr/local/bin/docker-compose
 
     # Wait for yum lock to clear #2
-    while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
-        echo "Waiting for yum lock to be released... (2)"
-        sleep 5
-    done
+    # while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
+    #     echo "Waiting for yum lock to be released... (2)"
+    #     sleep 5
+    # done
 
-    yum update -y
-    yum install -y git awscli
+    # yum update -y
+    # yum install -y git awscli
 
-    cd /home/ec2-user
+    # cd /home/ec2-user
 
     # Download and extract secrets from S3
-    aws s3 cp s3://breakroom-secrets/encrypt.tar.gz /home/ec2-user/encrypt.tar.gz
-    mkdir -p /home/ec2-user/backend/etc/encrypt
-    tar -xzf encrypt.tar.gz -C /home/ec2-user/backend/etc/encrypt --strip-components=1
+    # aws s3 cp s3://breakroom-secrets/encrypt.tar.gz /home/ec2-user/encrypt.tar.gz
+    # mkdir -p /home/ec2-user/backend/etc/encrypt
+    # tar -xzf encrypt.tar.gz -C /home/ec2-user/backend/etc/encrypt --strip-components=1
 
     # Clone the Breakroom repo and copy nginx config
-    git clone https://github.com/dallascaley/Breakroom.git
+    # git clone https://github.com/dallascaley/Breakroom.git
 
-    mkdir -p /home/ec2-user/backend/etc/nginx
-    curl -L -o /home/ec2-user/backend/etc/nginx/nginx-production.conf https://raw.githubusercontent.com/dallascaley/Breakroom/main/backend/etc/nginx/nginx-production.conf
+    # mkdir -p /home/ec2-user/backend/etc/nginx
+    # curl -L -o /home/ec2-user/backend/etc/nginx/nginx-production.conf https://raw.githubusercontent.com/dallascaley/Breakroom/main/backend/etc/nginx/# nginx-production.conf
 
-    cp -r Breakroom/backend/etc/nginx /home/ec2-user/backend/etc/nginx
+    # cp -r Breakroom/backend/etc/nginx /home/ec2-user/backend/etc/nginx
 
-    chown -R ec2-user:ec2-user /home/ec2-user/backend
+    # chown -R ec2-user:ec2-user /home/ec2-user/backend
 
     # Download docker-compose.production.yml
-    curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
-    chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
+    # curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
+    # chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
 
     # Run the app
-    sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml pull
-    sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
+    # sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml pull
+    # sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
   EOF
 
   connection {
