@@ -166,8 +166,8 @@ resource "aws_instance" "breakroom_instance" {
     
     # now just install python3 which is required for Ansible
     
-    sudo apt update
-    sudo apt install -y python3
+    sudo yum update
+    sudo yum install -y python3
 
     # here is all the crap it used to do:
 
@@ -240,8 +240,8 @@ resource "aws_eip_association" "eip_assoc" {
 }
 
 # Outputs
-output "instance_public_ip" {
-  description = "Public IP of EC2 instance"
+output "breakroom_instance_public_ip" {
+  description = "Public IP of Breakroom EC2 instance"
   value       = aws_instance.breakroom_instance.public_ip
 }
 
