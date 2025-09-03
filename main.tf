@@ -171,13 +171,7 @@ resource "aws_instance" "breakroom_instance" {
 
     # here is all the crap it used to do:
 
-    # Wait for yum lock to clear #1
-    # while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
-    #    echo "Waiting for yum lock to be released... (1)"
-    #    sleep 5
-    #done
-
-    # Install Docker
+    # Install Docker                         - added to Ansible 9/3 flag for removal
     # amazon-linux-extras install -y docker
     # service docker start
     # usermod -aG docker ec2-user
@@ -185,12 +179,6 @@ resource "aws_instance" "breakroom_instance" {
     # Install Docker Compose
     # curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     # chmod +x /usr/local/bin/docker-compose
-
-    # Wait for yum lock to clear #2
-    # while lsof /var/lib/rpm/.rpm.lock >/dev/null 2>&1; do
-    #     echo "Waiting for yum lock to be released... (2)"
-    #     sleep 5
-    # done
 
     # yum update -y
     # yum install -y git awscli
