@@ -176,7 +176,7 @@ resource "aws_instance" "breakroom_instance" {
     # service docker start
     # usermod -aG docker ec2-user
 
-    # Install Docker Compose
+    # Install Docker Compose                 - added to Ansible 9/4 flag for removal
     # curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     # chmod +x /usr/local/bin/docker-compose
 
