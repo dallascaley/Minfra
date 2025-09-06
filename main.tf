@@ -168,45 +168,6 @@ resource "aws_instance" "breakroom_instance" {
     
     sudo yum update
     sudo yum install -y python3
-
-    # here is all the crap it used to do:
-
-    # Install Docker                         - added to Ansible 9/3 flag for removal
-    # amazon-linux-extras install -y docker
-    # service docker start
-    # usermod -aG docker ec2-user
-
-    # Install Docker Compose                 - added to Ansible 9/4 flag for removal
-    # curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    # chmod +x /usr/local/bin/docker-compose
-
-    # yum update -y
-    # yum install -y git awscli
-
-    # cd /home/ec2-user
-
-    # Download and extract secrets from S3
-    # aws s3 cp s3://breakroom-secrets/encrypt.tar.gz /home/ec2-user/encrypt.tar.gz
-    # mkdir -p /home/ec2-user/backend/etc/encrypt
-    # tar -xzf encrypt.tar.gz -C /home/ec2-user/backend/etc/encrypt --strip-components=1
-
-    # Clone the Breakroom repo and copy nginx config
-    # git clone https://github.com/dallascaley/Breakroom.git
-
-    # mkdir -p /home/ec2-user/backend/etc/nginx
-    # curl -L -o /home/ec2-user/backend/etc/nginx/nginx-production.conf https://raw.githubusercontent.com/dallascaley/Breakroom/main/backend/etc/nginx/# nginx-production.conf
-
-    # cp -r Breakroom/backend/etc/nginx /home/ec2-user/backend/etc/nginx
-
-    # chown -R ec2-user:ec2-user /home/ec2-user/backend
-
-    # Download docker-compose.production.yml
-    # curl -L -o /home/ec2-user/docker-compose.production.yml https://raw.githubusercontent.com/dallascaley/Breakroom/main/docker-compose.production.yml
-    # chown ec2-user:ec2-user /home/ec2-user/docker-compose.production.yml
-
-    # Run the app
-    # sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml pull
-    # sudo -u ec2-user /usr/local/bin/docker-compose -f /home/ec2-user/docker-compose.production.yml up -d
   EOF
 
   connection {
